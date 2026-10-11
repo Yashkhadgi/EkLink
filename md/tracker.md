@@ -82,6 +82,14 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 
 ## Progress log (newest first)
 
+### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Auth login foundation
+**Work done:** Added Supabase browser/server/admin helpers, session-refresh proxy, login/logout/forgot-password/auth-confirm routes, safe redirect validation, prototype rate limiting, audit writes, password setup/reset forms, dashboard/profile pages, root layout header and security headers.
+**Files / links:** local branch `feat/auth-login`; commits to be created locally.
+**Decisions:** Used Next.js 16 `proxy.ts`; switched `npm run build` to `next build --webpack` because Turbopack panicked in the local CSS loader path while Webpack passed the full production build.
+**Problems:** Pre-existing empty scaffold routes/pages were invalid modules, so minimal "not implemented in this phase" placeholders were added for out-of-scope admin/JWKS/authorize/token surfaces.
+**Tests:** `npm run lint` passed; `npm run build` passed.
+**Next:** Test the auth flow against the configured Supabase project with an invited dummy user.
+
 ### 2026-10-10 | Planning session | Phase 0
 **Work done:**
 - Defined the five-app suite and EkLink's role as identity-only portal.

@@ -238,8 +238,8 @@ Environment variables (EkLink, server only unless noted):
 
 ```
 NEXT_PUBLIC_SUPABASE_URL            (public)
-NEXT_PUBLIC_SUPABASE_ANON_KEY       (public)
-SUPABASE_SERVICE_ROLE_KEY           (secret, server only)
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (public)
+SUPABASE_SECRET_KEY                 (secret, server only)
 EKLINK_ISSUER_URL
 EKLINK_JWT_PRIVATE_KEY              (secret)
 EKLINK_JWT_KEY_ID
