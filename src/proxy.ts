@@ -8,6 +8,8 @@ const PASSWORD_CHANGE_ALLOWED_PATHS = [
   "/api/auth",
   "/auth",
   "/login",
+  "/authorize",
+  "/token",
 ];
 
 type RefreshedCookie = {
