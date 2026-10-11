@@ -1,3 +1,11 @@
+### 2026-10-XX HH:MM (IST) | Yash | Phase 1: Foundation
+**Work done:** Next.js (App Router, TypeScript, Tailwind) scaffolded; installed @supabase/supabase-js, @supabase/ssr, jose, zod; created folder structure for auth, dashboard, admin, authorize/token routes and lib; added .env.example and .gitignore (secrets excluded).
+**Files / links:** commit "chore: scaffold Next.js project and folder structure"
+**Decisions:** None new.
+**Problems:** .gitignore failed first time (zsh treated "!" as history expansion), .DS_Store was committed; removed from repo.
+**Tests:** npm run dev opens the default page on localhost:3000.
+**Next:** Create Supabase project, write 0001_init.sql (profiles, apps, auth_codes, audit_log + RLS), disable open signup.
+
 # EkLink: Tracker
 
 The single source of truth for what has been done, when, by whom, and what comes next. Update it after every meaningful piece of work (see `rules.md` section 13). Never delete old entries; add corrections as new entries.
