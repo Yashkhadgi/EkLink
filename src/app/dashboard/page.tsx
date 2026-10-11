@@ -9,6 +9,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "./logout-button";
 
@@ -66,6 +67,8 @@ function AppIcon({ icon, slug }: { icon: string | null; slug: string }) {
 }
 
 export default async function DashboardPage() {
+  await connection();
+
   const supabase = await createClient();
   const admin = createAdminClient();
   const {

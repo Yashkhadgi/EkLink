@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 
 export const instant = false;
 
@@ -13,6 +14,8 @@ type Profile = {
 };
 
 export default async function ProfilePage() {
+  await connection();
+
   const supabase = await createClient();
   const {
     data: { user },
