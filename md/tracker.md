@@ -34,7 +34,7 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 |---|---|---|---|---|
 | 0 | Decisions and access | In progress | TBD | 2026-10-10 |
 | 1 | Foundation (repo, Supabase, tables, SMTP) | Not started | TBD | |
-| 2 | Users and login (CSV, invite, PRN/email login, reset) | Not started | TBD | |
+| 2 | Users and login (CSV, invite, PRN/email login, reset) | In progress | Codex | 2026-10-11 |
 | 3 | Dashboard and app registry | Not started | TBD | |
 | 4 | Redirect and one-time code flow, JWKS | Not started | TBD | |
 | 5 | First integration: Infivoice | Not started | TBD | |
@@ -81,6 +81,14 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 ---
 
 ## Progress log (newest first)
+
+### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Forced password change
+**Work done:** Enforced `must_change_password` in `src/proxy.ts` for signed-in users, returning 403 JSON for blocked API calls and redirecting page requests to `/change-password`; hid the forgot-password link on `/login`; added the missing client change-password form required by the existing page.
+**Files / links:** commit to be created locally.
+**Decisions:** Proxy fails open if the profile lookup errors; sensitive routes such as `/authorize` and `/token` must re-check the flag server-side and fail closed when implemented.
+**Problems:** The brief said `change-password-form.tsx` already existed, but it was missing from the checkout and the build failed until it was added.
+**Tests:** `npm run lint` passed; `npm run build` passed.
+**Next:** Manually test with a faculty temporary-password account, then continue to the shared provisioning library.
 
 ### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Auth login foundation
 **Work done:** Added Supabase browser/server/admin helpers, session-refresh proxy, login/logout/forgot-password/auth-confirm routes, safe redirect validation, prototype rate limiting, audit writes, password setup/reset forms, dashboard/profile pages, root layout header and security headers.

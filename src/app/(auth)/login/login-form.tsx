@@ -1,7 +1,6 @@
 "use client";
 
 import { getSafeRelativePath } from "@/lib/security/redirect";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { z } from "zod";
@@ -100,9 +99,7 @@ export function LoginForm() {
         {pending ? "Signing in..." : "Sign in"}
       </button>
       <p className="text-center text-sm text-slate-600">
-        <Link className="font-medium text-slate-950 underline-offset-4 hover:underline" href="/forgot-password">
-          Forgot password?
-        </Link>
+        Forgot your password? Contact your administrator.
       </p>
     </form>
   );
