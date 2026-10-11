@@ -35,7 +35,7 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 | 0 | Decisions and access | In progress | TBD | 2026-10-10 |
 | 1 | Foundation (repo, Supabase, tables, SMTP) | Not started | TBD | |
 | 2 | Users and login (CSV, invite, PRN/email login, reset) | In progress | Codex | 2026-10-11 |
-| 3 | Dashboard and app registry | Not started | TBD | |
+| 3 | Dashboard and app registry | In progress | Codex | 2026-10-11 |
 | 4 | Redirect and one-time code flow, JWKS | Not started | TBD | |
 | 5 | First integration: Infivoice | Not started | TBD | |
 | 6 | Admin panel and hardening | Not started | TBD | |
@@ -81,6 +81,14 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 ---
 
 ## Progress log (newest first)
+
+### 2026-10-11 20:49 (IST) | Codex | Phase 3: App registry metadata and dashboard cards
+**Work done:** Added app registry metadata migration, a standalone app registration CLI and dashboard app cards filtered by the signed-in user's role.
+**Files / links:** commit to be created locally.
+**Decisions:** App secrets are generated only on create or explicit rotation, stored as SHA-256 hashes and printed once by the registration script; all initial app cards should be registered as `coming_soon`.
+**Problems:** Installing `lucide-react` needed network access after the sandboxed fetch failed.
+**Tests:** `npm run lint` passed; `npm run build` passed.
+**Next:** Apply migration 0004 in Supabase SQL Editor, register the five apps and then continue to the next requested task.
 
 ### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Shared provisioning library
 **Work done:** Added a server-only provisioning library for creating users, generating temporary passwords, resetting temporary passwords, activating/deactivating users and forcing logout; added migration `0003_revoke_user_sessions.sql` for service-role-only session revocation.
