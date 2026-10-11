@@ -82,6 +82,18 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 
 ## Progress log (newest first)
 
+### 2026-10-12 00:07 (IST) | Codex | Phase 4: App sign-in flow
+**Work done:** Implemented Task B for EkLink app sign-in: key generation script, `/authorize`, `/token`, `/token/refresh`, JWKS, rate limits, audit logs and the app integration guide.
+**Files / links:** commit to be created locally.
+**Decisions:** Token refresh verifies the old token signature even when expired, then re-checks active status, forced password change, role access and token version before issuing a new 15-minute ES256 token.
+**Problems:** None yet.
+**Tests:** `npm run lint` passed; `npm run build` passed.
+**Next:** Test the local app sign-in flow with a temporary live app, then continue with deployment/admin work when requested.
+
+### 2026-10-11 21:33 (IST) | Yash | Users, force-change, dashboard
+**Work done:** Imported 996 users (1 admin, 1 director, 1 hod, 46 faculty, 947 students). Forced password change tested and working. Registered 5 apps (all coming soon) and the dashboard shows role-filtered app cards.
+**Next:** /authorize, /token, JWKS; admin users screen; Vercel deploy; connect Infivoice.
+
 ### 2026-10-11 20:49 (IST) | Codex | Phase 3: App registry metadata and dashboard cards
 **Work done:** Added app registry metadata migration, a standalone app registration CLI and dashboard app cards filtered by the signed-in user's role.
 **Files / links:** commit to be created locally.
