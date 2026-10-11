@@ -82,6 +82,14 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 
 ## Progress log (newest first)
 
+### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Shared provisioning library
+**Work done:** Added a server-only provisioning library for creating users, generating temporary passwords, resetting temporary passwords, activating/deactivating users and forcing logout; added migration `0003_revoke_user_sessions.sql` for service-role-only session revocation.
+**Files / links:** commit to be created locally.
+**Decisions:** Temporary passwords are generated with `crypto.randomInt`, avoid look-alike characters and are returned only to the caller; no passwords are stored or audit-logged.
+**Problems:** None.
+**Tests:** `npm run lint` passed; `npm run build` passed.
+**Next:** Apply migration 0003 in Supabase SQL Editor before using `resetTempPassword`, deactivation session revocation or force logout.
+
 ### 2026-10-11 HH:MM (IST) | Codex | Phase 2: Forced password change
 **Work done:** Enforced `must_change_password` in `src/proxy.ts` for signed-in users, returning 403 JSON for blocked API calls and redirecting page requests to `/change-password`; hid the forgot-password link on `/login`; added the missing client change-password form required by the existing page.
 **Files / links:** commit to be created locally.
