@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_PATHS = ["/dashboard", "/profile"];
+const PROTECTED_PATHS = ["/dashboard", "/profile", "/admin"];
 // Machine-to-machine sync API (Basic client credentials, no user session).
 const SESSIONLESS_PATHS = ["/api/sync"];
 const PASSWORD_CHANGE_ALLOWED_PATHS = [
