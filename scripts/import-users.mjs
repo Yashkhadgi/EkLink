@@ -4,6 +4,11 @@
 //   Dry run (default, creates nothing):  node --env-file=.env.local scripts/import-users.mjs
 //   Create 5 accounts from one file:     node --env-file=.env.local scripts/import-users.mjs --apply --limit 5 --file Faculty
 //   Create everything:                   node --env-file=.env.local scripts/import-users.mjs --apply
+//   Place new people elsewhere:          ... --org SIU --institute SIT --department CSE   (these are the defaults)
+//
+// Placement: optional "org", "institute" and "department code" columns in a sheet win over the
+// --org / --institute / --department defaults. Codes that do not exist (or a database without
+// migration 0005) leave the person unplaced; nothing fails because of it.
 //
 // Rules this script follows (see md/rules.md):
 //   * never prints names, emails, IDs or passwords to the console
@@ -89,6 +94,9 @@ async function readSheetRows(file) {
       batch: get(headerIdx.batch),
       section: get(headerIdx.section),
       department: get(headerIdx.department),
+      orgCode: get(headerIdx.org ?? headerIdx.organization),
+      instituteCode: get(headerIdx.institute),
+      departmentCode: get(headerIdx['department code'] ?? headerIdx.department_code),
     };
     if (Object.values(raw).every((x) => x === '')) continue; // empty row
     rows.push({ rowNumber: r, raw });
@@ -110,15 +118,21 @@ function validate(raw) {
   if (batch && !/^\d{4}-\d{2}$/.test(batch)) return { reason: 'invalid batch' };
   if (section && !/^[A-Z]$/.test(section)) return { reason: 'invalid section' };
   return {
-    record: { loginId, name: raw.name, email, role, department: raw.department || null, batch, section },
+    record: {
+      loginId, name: raw.name, email, role, department: raw.department || null, batch, section,
+      orgCode: raw.orgCode || null, instituteCode: raw.instituteCode || null, departmentCode: raw.departmentCode || null,
+    },
   };
 }
 
 // ---------------------------------------------------------------- helpers
 function parseArgs(argv) {
-  const a = { apply: false, limit: null, file: null };
+  const a = { apply: false, limit: null, file: null, org: 'SIU', institute: 'SIT', department: 'CSE' };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--apply') a.apply = true;
+    else if (argv[i] === '--org') a.org = (argv[++i] ?? '').toUpperCase();
+    else if (argv[i] === '--institute') a.institute = (argv[++i] ?? '').toUpperCase();
+    else if (argv[i] === '--department') a.department = (argv[++i] ?? '').toUpperCase();
     else if (argv[i] === '--limit') a.limit = Number(argv[++i]);
     else if (argv[i] === '--file') a.file = (argv[++i] ?? '').toLowerCase();
   }
@@ -162,24 +176,46 @@ async function withRetry(fn) {
   }
 }
 
+// "ORG/INSTITUTE/DEPARTMENT" codes -> department id (cached). null when unknown or when the
+// directory tables do not exist yet (database before migration 0005).
+const departmentIds = new Map();
+async function departmentIdFor(admin, orgCode, instituteCode, departmentCode) {
+  const key = `${orgCode}/${instituteCode}/${departmentCode}`;
+  if (departmentIds.has(key)) return departmentIds.get(key);
+  let id = null;
+  if (orgCode && instituteCode && departmentCode) {
+    const { data, error } = await admin
+      .from('departments')
+      .select('id, code, institutes!inner(code, organizations!inner(code))')
+      .eq('code', departmentCode)
+      .eq('institutes.code', instituteCode)
+      .eq('institutes.organizations.code', orgCode)
+      .maybeSingle();
+    if (!error && data) id = data.id;
+  }
+  departmentIds.set(key, id);
+  return id;
+}
+
 async function createOne(admin, rec) {
   const password = generatePassword();
   const created = await withRetry(() => admin.auth.admin.createUser({ email: rec.email, password, email_confirm: true }));
   if (created.error) return { ok: false, reason: `auth_create_failed:${created.error.status ?? created.error.code ?? 'error'}` };
   const id = created.data.user.id;
-  const inserted = await withRetry(() =>
-    admin.from('profiles').insert({
-      id,
-      login_id: rec.loginId,
-      college_email: rec.email,
-      name: rec.name,
-      role: rec.role,
-      department: rec.department,
-      batch: rec.batch,
-      section: rec.section,
-      must_change_password: true,
-    }),
-  );
+  const profile = {
+    id,
+    login_id: rec.loginId,
+    college_email: rec.email,
+    name: rec.name,
+    role: rec.role,
+    department: rec.department,
+    batch: rec.batch,
+    section: rec.section,
+    must_change_password: true,
+  };
+  // Only sent when it resolves, so this also works before migration 0005.
+  if (rec.departmentId) profile.department_id = rec.departmentId;
+  const inserted = await withRetry(() => admin.from('profiles').insert(profile));
   if (inserted.error) {
     await admin.auth.admin.deleteUser(id); // never leave an account without a profile
     return { ok: false, reason: `profile_insert_failed:${inserted.error.code ?? 'error'}` };
@@ -276,6 +312,12 @@ async function main() {
   const auditRows = [];
   let created = 0, failed = 0, done = 0;
   await pool(planned, CONCURRENCY, async ({ file, row, rec }) => {
+    rec.departmentId = await departmentIdFor(
+      admin,
+      rec.orgCode ?? args.org,
+      rec.instituteCode ?? args.institute,
+      rec.departmentCode ?? args.department,
+    );
     const res = await createOne(admin, rec);
     if (res.ok) {
       created++;
