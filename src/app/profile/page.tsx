@@ -1,3 +1,4 @@
+import { formatPlatformRole, getPlacement } from "@/lib/placement";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -35,13 +36,27 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const rows = [
+  const placement = await getPlacement(user.id);
+  const classInfo = [
+    placement.batch && `Batch ${placement.batch}`,
+    placement.section && `Section ${placement.section}`,
+    placement.semester && `Semester ${placement.semester}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const rows: [string, string][] = [
     ["Name", profile.name],
     ["Login ID", profile.login_id],
     ["College email", profile.college_email],
     ["Role", profile.role],
-    ["Department", profile.department ?? "Not set"],
   ];
+  const access = formatPlatformRole(placement.platformRole);
+  if (access) rows.push(["Access level", access]);
+  if (placement.organization) rows.push(["Organization", placement.organization]);
+  if (placement.institute) rows.push(["Institute", placement.institute]);
+  rows.push(["Department", placement.department ?? profile.department ?? "Not set"]);
+  if (classInfo) rows.push(["Class", classInfo]);
 
   return (
     <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
