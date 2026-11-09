@@ -226,12 +226,37 @@ Run the SQL scripts in `supabase/migrations/` sequentially in your Supabase SQL 
 * `0002_user_provisioning.sql` — Password setup and invite tracking.
 * `0003_revoke_user_sessions.sql` — Security revocation functions.
 * `0004_app_registry_metadata.sql` — App status and display metadata.
+* `0005_org_hierarchy.sql` — Organization → institute → department tree and `platform_role`.
+* `0006_sync.sql` — Approver jobs, change events and per-app deliveries.
+
+Rollback scripts for 0005 and 0006 are in `supabase/rollback/`.
 
 ### 6. Run Development Server
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to view the portal.
+
+### 7. Run Tests
+```bash
+npm test
+```
+
+---
+
+## 🧭 Admin Console & Further Docs
+
+Admins (`super_admin`, `org_admin`, `institute_admin`, `department_admin`) open `/admin` to manage users, the directory, approver jobs, app sync and the audit log. Each admin only sees and changes people and units inside their own scope, and can only give roles below their own.
+
+Account scripts are a dry run by default; add `--apply` to create accounts. Re-running skips people who already exist, and temporary passwords are written only to git-ignored files:
+
+```bash
+node --env-file=.env scripts/create-demo-users.mjs
+node --env-file=.env scripts/create-staff-users.mjs
+```
+
+* [App integration guide](md/integration-guide.md) — sign-in, tokens and claims for connected apps.
+* [Change sync guide](md/sync-guide.md) — how apps receive people, directory and approver changes.
 
 ---
 
