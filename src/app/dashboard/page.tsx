@@ -1,4 +1,7 @@
+import { isAdminRole } from "@/lib/admin/scope";
+import { appAllowsRole, platformRoleOf } from "@/lib/auth/oauth";
 import { createClient } from "@/lib/supabase/server";
+import { getPlacement } from "@/lib/placement";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   AppWindow,
@@ -19,6 +22,7 @@ type Profile = {
   name: string;
   role: string;
   department: string | null;
+  platform_role: string | null;
 };
 
 type AppStatus = "live" | "coming_soon";
@@ -30,6 +34,7 @@ type PortalApp = {
   description: string | null;
   icon: string | null;
   allowed_roles: string[];
+  allowed_platform_roles: string[] | null;
   status: AppStatus;
   is_active: boolean;
 };
@@ -81,7 +86,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = (await supabase
     .from("profiles")
-    .select("name, role, department")
+    .select("name, role, department, platform_role")
     .eq("id", user.id)
     .single()) as { data: Profile | null };
 
@@ -91,13 +96,20 @@ export default async function DashboardPage() {
 
   const { data: apps } = (await admin
     .from("apps")
-    .select("slug, name, url, description, icon, allowed_roles, status, is_active")
+    .select("slug, name, url, description, icon, allowed_roles, allowed_platform_roles, status, is_active")
     .eq("is_active", true)
     .order("name", { ascending: true })) as { data: PortalApp[] | null };
 
+  const placement = await getPlacement(user.id);
+  const where = [placement.institute, placement.department ?? profile.department]
+    .filter(Boolean)
+    .join(" · ");
+
+  const platformRole = platformRoleOf(profile.role, profile.platform_role);
   const visibleApps = (apps ?? []).filter((app) =>
-    app.allowed_roles.includes(profile.role),
+    appAllowsRole(app, profile.role, platformRole),
   );
+  const showAdmin = isAdminRole(platformRole);
 
   return (
     <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -112,11 +124,21 @@ export default async function DashboardPage() {
                 {profile.role}
               </span>
               <span className="rounded-md bg-slate-100 px-2 py-1">
-                {profile.department ?? "Department not set"}
+                {where || "Department not set"}
               </span>
             </div>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            {showAdmin ? (
+              <a
+                href="/admin/users"
+                className="rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                Admin console
+              </a>
+            ) : null}
+            <LogoutButton />
+          </div>
         </section>
 
         <section className="space-y-3">
