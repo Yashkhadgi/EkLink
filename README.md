@@ -20,6 +20,30 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## EkLink Docs
+
+- [App integration guide](md/integration-guide.md): sign-in, tokens and claims for connected apps.
+- [Change sync guide](md/sync-guide.md): how apps receive people, directory and approver changes.
+
+## Admin Console
+
+Admins (`super_admin`, `org_admin`, `institute_admin`, `department_admin`) open `/admin` to manage users, the directory, approver jobs, app sync and the audit log. Each admin only sees and changes people and units inside their own scope, and can only give roles below their own.
+
+Account scripts (both are a dry run by default; add `--apply` to create accounts, and re-running skips people who already exist):
+
+```bash
+node --env-file=.env scripts/create-demo-users.mjs
+node --env-file=.env scripts/create-staff-users.mjs
+```
+
+`create-demo-users.mjs` reads demo credentials from the TemplateOS `.env`; `create-staff-users.mjs` reads `data/staff-accounts-proposed.csv` (git-ignored). Temporary passwords are written only to git-ignored files and never printed.
+
+## Tests
+
+```bash
+npm test
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
