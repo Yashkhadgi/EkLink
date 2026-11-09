@@ -3,6 +3,8 @@ import type { CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 const PROTECTED_PATHS = ["/dashboard", "/profile"];
+// Machine-to-machine sync API (Basic client credentials, no user session).
+const SESSIONLESS_PATHS = ["/api/sync"];
 const PASSWORD_CHANGE_ALLOWED_PATHS = [
   "/change-password",
   "/api/auth",
@@ -23,6 +25,10 @@ function pathMatches(pathname: string, paths: string[]) {
 }
 
 export async function proxy(request: NextRequest) {
+  if (pathMatches(request.nextUrl.pathname, SESSIONLESS_PATHS)) {
+    return NextResponse.next({ request });
+  }
+
   let refreshedCookies: RefreshedCookie[] = [];
   let response = NextResponse.next({
     request,
