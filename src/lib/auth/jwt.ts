@@ -23,6 +23,12 @@ export type TokenProfile = {
   batch: string | null;
   section: string | null;
   token_version: number;
+  // Organization tree (optional so older callers keep compiling).
+  platform_role?: string | null;
+  semester?: number | null;
+  org_code?: string | null;
+  institute_code?: string | null;
+  department_code?: string | null;
 };
 
 export type EklinkTokenPayload = JWTPayload & {
@@ -35,6 +41,11 @@ export type EklinkTokenPayload = JWTPayload & {
   batch: string | null;
   section: string | null;
   ver: number;
+  platform_role: string | null;
+  semester: number | null;
+  org_code: string | null;
+  institute_code: string | null;
+  department_code: string | null;
 };
 
 function issuer() {
@@ -59,6 +70,11 @@ async function publicKey() {
   const jwk = await exportJWK(await privateKey());
   delete jwk.d;
   return importJWK(jwk, ALG);
+}
+
+/** The access-token signing key, kid and issuer (reused for sync event pushes). */
+export async function signingMaterial() {
+  return { key: await privateKey(), kid: keyId(), issuer: issuer() };
 }
 
 export async function publicJwk() {
@@ -89,6 +105,12 @@ export async function signAccessToken({
     batch: profile.batch,
     section: profile.section,
     ver: profile.token_version,
+    // Added for the central user directory; `role` above keeps its old values.
+    platform_role: profile.platform_role ?? null,
+    semester: profile.semester ?? null,
+    org_code: profile.org_code ?? null,
+    institute_code: profile.institute_code ?? null,
+    department_code: profile.department_code ?? null,
   })
     .setProtectedHeader({ alg: ALG, kid: keyId(), typ: "JWT" })
     .setIssuer(issuer())

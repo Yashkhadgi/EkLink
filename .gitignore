@@ -45,3 +45,6 @@ next-env.d.ts
 data/
 *.csv
 *.xlsx
+
+# local database backups (contain personal data)
+backups/

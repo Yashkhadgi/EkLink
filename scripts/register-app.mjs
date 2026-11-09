@@ -10,6 +10,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const ROLES = ['student', 'faculty', 'staff', 'hod', 'director', 'finance', 'admin'];
 const ROLE_SET = new Set(ROLES);
+const PLATFORM_ROLES = ['super_admin', 'org_admin', 'institute_admin', 'department_admin', 'faculty', 'staff', 'student'];
+const PLATFORM_ROLE_SET = new Set(PLATFORM_ROLES);
 const STATUSES = new Set(['live', 'coming_soon']);
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -19,7 +21,12 @@ function usage() {
     '  node --env-file=.env.local scripts/register-app.mjs \\',
     '    --slug <slug> --name <name> --url <url> --callback <url> \\',
     '    --roles <role[,role...]|all> --icon <icon-name> --description <text> \\',
-    '    [--status live|coming_soon] [--rotate-secret]',
+    '    [--status live|coming_soon] [--rotate-secret] \\',
+    '    [--platform-roles <platform_role[,...]|all|none>] [--sync-url <url>|none]',
+    '',
+    '  --platform-roles  new-role access list (apps.allowed_platform_roles); "none" clears it',
+    '  --sync-url        where EkLink POSTs change events (apps.sync_url); "none" stops pushes',
+    '  Both are left unchanged on an existing app when omitted.',
   ].join('\n');
 }
 
@@ -47,6 +54,8 @@ function parseArgs(argv) {
     else if (arg === '--description') args.description = next();
     else if (arg === '--status') args.status = next();
     else if (arg === '--rotate-secret') args.rotateSecret = true;
+    else if (arg === '--platform-roles') args.platformRoles = next();
+    else if (arg === '--sync-url') args.syncUrl = next();
     else throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -71,6 +80,25 @@ function parseRoles(value) {
     if (!ROLE_SET.has(role)) throw new Error(`Unknown role: ${role}`);
   }
   return [...new Set(roles)];
+}
+
+function parsePlatformRoles(value) {
+  const trimmed = value.trim();
+  if (trimmed === 'none') return null;
+  if (trimmed === 'all') return PLATFORM_ROLES;
+  const roles = [...new Set(trimmed.split(',').map((role) => role.trim().toLowerCase()).filter(Boolean))];
+  if (!roles.length) throw new Error('--platform-roles must include at least one role (or all / none)');
+  for (const role of roles) {
+    if (!PLATFORM_ROLE_SET.has(role)) throw new Error(`Unknown platform role: ${role}`);
+  }
+  return roles;
+}
+
+function parseSyncUrl(value) {
+  if (value.trim() === 'none') return null;
+  const url = assertUrl(value.trim(), '--sync-url');
+  if (!/^https?:/.test(url)) throw new Error('--sync-url must be http(s)');
+  return url;
 }
 
 function assertUrl(value, label) {
@@ -106,6 +134,8 @@ async function main() {
   if (!args.callbacks.length) throw new Error('--callback is required at least once');
   const callbackUrls = args.callbacks.map((callback) => assertUrl(callback, '--callback'));
   const allowedRoles = parseRoles(requireText(args, 'roles'));
+  const platformRoles = args.platformRoles !== undefined ? parsePlatformRoles(args.platformRoles) : undefined;
+  const syncUrl = args.syncUrl !== undefined ? parseSyncUrl(args.syncUrl) : undefined;
 
   const admin = createClient(url, serviceKey, {
     auth: {
@@ -131,6 +161,8 @@ async function main() {
     description,
     status,
     is_active: true,
+    ...(platformRoles !== undefined ? { allowed_platform_roles: platformRoles } : {}),
+    ...(syncUrl !== undefined ? { sync_url: syncUrl } : {}),
   };
 
   let clientSecret = null;
@@ -157,6 +189,8 @@ async function main() {
 
   console.log(`Registered app: ${slug}`);
   console.log(`client_id: ${clientId}`);
+  if (platformRoles !== undefined) console.log(`allowed_platform_roles: ${platformRoles ? platformRoles.join(',') : '(none)'}`);
+  if (syncUrl !== undefined) console.log(`sync_url: ${syncUrl ?? '(none)'}`);
   if (clientSecret) {
     console.log(`client_secret: ${clientSecret}`);
     console.log('Save this secret now. It cannot be recovered from EkLink.');
