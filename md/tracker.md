@@ -47,8 +47,8 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 | App | Registered | Sign-in flow added | Tests passed | Status |
 |---|---|---|---|---|
 | Infivoice | No | No | No | Not started |
-| ApproveIt | No | No | No | Not started |
-| TemplateOS | No | No | No | Not started |
+| ApproveIt | Yes | No | No | In progress |
+| TemplateOS | Yes | No | No | In progress |
 | Attendie | No | No | No | Not started |
 | SlotIt | No | No | No | Not started |
 
@@ -63,6 +63,7 @@ Status keys: `Not started` | `In progress` | `Blocked` | `Done`
 | 5 | When will the IT head be approached about `eklink.clg.edu.in` and the wildcard? | TBD | Open |
 | 6 | Is a college data-handling policy needed before loading real data? | TBD | Open |
 | 7 | Should HOD/director sign-in require stronger verification later? | TBD | Open |
+| 8 | Adopt 2-tier admin architecture (central directory + delegated sub-app admins)? (See `proposal-delegated-subapp-admin.md`) | Team | Under review |
 
 ## Decision log
 

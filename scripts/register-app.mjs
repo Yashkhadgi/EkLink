@@ -197,6 +197,7 @@ async function main() {
   } else {
     console.log('client_secret: unchanged (use --rotate-secret to generate a new one)');
   }
+  process.exit(0);
 }
 
 main().catch((error) => {

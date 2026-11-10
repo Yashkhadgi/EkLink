@@ -95,9 +95,13 @@ export default async function DashboardPage() {
     .eq("is_active", true)
     .order("name", { ascending: true })) as { data: PortalApp[] | null };
 
-  const visibleApps = (apps ?? []).filter((app) =>
-    app.allowed_roles.includes(profile.role),
-  );
+  const visibleApps = (apps ?? [])
+    .filter((app) => app.allowed_roles.includes(profile.role))
+    .sort((a, b) => {
+      if (a.status === "live" && b.status !== "live") return -1;
+      if (a.status !== "live" && b.status === "live") return 1;
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
