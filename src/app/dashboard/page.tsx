@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { platformRoleOf } from "@/lib/auth/oauth";
+import { isAdminRole } from "@/lib/admin/scope";
 import {
   AppWindow,
   DoorOpen,
@@ -18,6 +20,7 @@ export const instant = false;
 type Profile = {
   name: string;
   role: string;
+  platform_role: string | null;
   department: string | null;
 };
 
@@ -81,13 +84,15 @@ export default async function DashboardPage() {
 
   const { data: profile } = (await supabase
     .from("profiles")
-    .select("name, role, department")
+    .select("name, role, platform_role, department")
     .eq("id", user.id)
     .single()) as { data: Profile | null };
 
   if (!profile) {
     redirect("/login");
   }
+
+  const isAdmin = isAdminRole(platformRoleOf(profile.role, profile.platform_role));
 
   const { data: apps } = (await admin
     .from("apps")
@@ -120,7 +125,17 @@ export default async function DashboardPage() {
               </span>
             </div>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            {isAdmin ? (
+              <a
+                href="/admin/users"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                Admin Console
+              </a>
+            ) : null}
+            <LogoutButton />
+          </div>
         </section>
 
         <section className="space-y-3">

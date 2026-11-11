@@ -482,6 +482,251 @@ function EditUserDialog({
   );
 }
 
+function ImportUsersDialog({
+  directory,
+  onClose,
+  onImported,
+}: {
+  directory: Directory | null;
+  onClose: () => void;
+  onImported: () => void;
+}) {
+  type PreviewRow = {
+    rowNumber: number;
+    login_id: string;
+    name: string;
+    college_email: string;
+    role: string;
+    status: "ready" | "skipped" | "error";
+    reason?: string;
+  };
+  type PreviewResponse = {
+    mode: "preview";
+    total_rows: number;
+    ready_count: number;
+    skipped_count: number;
+    error_count: number;
+    rows: PreviewRow[];
+  };
+  type CreatedUser = {
+    login_id: string;
+    name: string;
+    college_email: string;
+    role: string;
+    temporary_password: string;
+  };
+  type ApplyResponse = {
+    mode: "apply";
+    created_count: number;
+    skipped_count: number;
+    error_count: number;
+    failed_count: number;
+    created: CreatedUser[];
+    failed: Array<{ login_id: string; college_email: string; reason: string }>;
+  };
+
+  const [file, setFile] = useState<File | null>(null);
+  const [placement, setPlacement] = useState<PlacementValue>(EMPTY_PLACEMENT);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewResponse | null>(null);
+  const [applied, setApplied] = useState<ApplyResponse | null>(null);
+
+  function downloadSample() {
+    const csv = [
+      "login_id,name,college_email,role,batch,section,semester",
+      "24070521991,Aarav Sharma,aarav.sharma@sitnagpur.siu.edu.in,student,2024-28,A,3",
+      "24070521992,Priya Verma,priya.verma@sitnagpur.siu.edu.in,student,2024-28,B,3",
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "eklink-sample-users.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPasswordsCsv(rows: CreatedUser[]) {
+    const cell = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [
+      "login_id,name,college_email,role,temporary_password",
+      ...rows.map((r) => [cell(r.login_id), cell(r.name), cell(r.college_email), cell(r.role), cell(r.temporary_password)].join(",")),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `eklink-temp-passwords-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function runImport(mode: "preview" | "apply") {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    const form = new FormData();
+    form.append("file", file);
+    form.append("mode", mode);
+    if (placement.organization_id) form.append("organization_id", placement.organization_id);
+    if (placement.institute_id) form.append("institute_id", placement.institute_id);
+    if (placement.department_id) form.append("department_id", placement.department_id);
+
+    try {
+      const response = await fetch("/api/admin/import", { method: "POST", body: form, cache: "no-store" });
+      const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!response.ok) {
+        setError(String(data.error ?? `Import failed (HTTP ${response.status})`));
+        setBusy(false);
+        return;
+      }
+      if (mode === "preview") {
+        setPreview(data as unknown as PreviewResponse);
+      } else {
+        setApplied(data as unknown as ApplyResponse);
+        onImported();
+      }
+    } catch {
+      setError("Network error while importing file.");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Modal title="Bulk import users (Excel / CSV)" onClose={onClose}>
+      {error ? <Notice>{error}</Notice> : null}
+
+      {applied ? (
+        <div className="space-y-4">
+          <Notice kind="success">
+            <p className="font-medium">
+              Created {applied.created_count} user{applied.created_count === 1 ? "" : "s"}!
+            </p>
+            <p className="mt-1 text-xs">
+              Skipped existing/duplicate: {applied.skipped_count} · Invalid: {applied.error_count} · Failed:{" "}
+              {applied.failed_count}
+            </p>
+          </Notice>
+
+          {applied.created.length > 0 ? (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-600">
+                  Temporary passwords are shown once below. Download the CSV before closing.
+                </p>
+                <Button variant="primary" onClick={() => downloadPasswordsCsv(applied.created)}>
+                  Download Passwords CSV
+                </Button>
+              </div>
+              <div className="max-h-64 overflow-y-auto rounded-md border border-slate-200">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Login ID</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">Temp Password</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {applied.created.map((u) => (
+                      <tr key={u.login_id} className="border-t border-slate-100">
+                        <td className="px-3 py-1.5 font-mono">{u.login_id}</td>
+                        <td className="px-3 py-1.5">{u.name}</td>
+                        <td className="px-3 py-1.5 font-mono font-medium text-slate-950">{u.temporary_password}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : null}
+
+          <div className="flex justify-end">
+            <Button variant="primary" onClick={onClose}>
+              Done
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-2 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+            <span>Upload an .xlsx or .csv sheet with columns: login_id, name, college_email, role, batch, section.</span>
+            <Button onClick={downloadSample}>Sample CSV</Button>
+          </div>
+
+          <Field label="Spreadsheet (.xlsx or .csv)">
+            <input
+              type="file"
+              accept=".xlsx,.csv"
+              className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-50"
+              onChange={(event) => {
+                setFile(event.target.files?.[0] ?? null);
+                setPreview(null);
+                setError(null);
+              }}
+            />
+          </Field>
+
+          <PlacementSelect directory={directory} value={placement} onChange={setPlacement} />
+
+          {preview ? (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge tone="green">Ready: {preview.ready_count}</Badge>
+                <Badge tone="amber">Skipped: {preview.skipped_count}</Badge>
+                <Badge tone="red">Errors: {preview.error_count}</Badge>
+              </div>
+              <div className="max-h-56 overflow-y-auto rounded-md border border-slate-200">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="px-2.5 py-2">Row</th>
+                      <th className="px-2.5 py-2">Login ID</th>
+                      <th className="px-2.5 py-2">Name</th>
+                      <th className="px-2.5 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((r) => (
+                      <tr key={`${r.rowNumber}-${r.login_id}`} className="border-t border-slate-100">
+                        <td className="px-2.5 py-1.5 text-slate-400">{r.rowNumber}</td>
+                        <td className="px-2.5 py-1.5 font-mono">{r.login_id || "—"}</td>
+                        <td className="px-2.5 py-1.5">{r.name || "—"}</td>
+                        <td className="px-2.5 py-1.5">
+                          {r.status === "ready" ? (
+                            <Badge tone="green">Ready ({r.role})</Badge>
+                          ) : (
+                            <Badge tone={r.status === "skipped" ? "amber" : "red"}>{r.reason}</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex justify-end gap-2">
+            <Button onClick={onClose}>Cancel</Button>
+            <Button disabled={busy || !file} onClick={() => void runImport("preview")}>
+              {busy ? "Checking…" : "Preview"}
+            </Button>
+            <Button
+              variant="primary"
+              disabled={busy || !preview || preview.ready_count === 0}
+              onClick={() => void runImport("apply")}
+            >
+              {busy ? "Importing…" : `Import ${preview?.ready_count ?? 0} users`}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 export function UsersClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -496,6 +741,7 @@ export function UsersClient() {
   const [placement, setPlacement] = useState<PlacementValue>(EMPTY_PLACEMENT);
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [deepError, setDeepError] = useState<string | null>(null);
 
@@ -531,9 +777,12 @@ export function UsersClient() {
         description="People, roles and placement. Changes reach TemplateOS and ApproveIt automatically."
         actions={
           me.data && me.data.assignable_roles.length ? (
-            <Button variant="primary" onClick={() => setCreating(true)}>
-              Add person
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setImporting(true)}>Import Excel / CSV</Button>
+              <Button variant="primary" onClick={() => setCreating(true)}>
+                Add person
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -652,6 +901,9 @@ export function UsersClient() {
 
       {creating && me.data ? (
         <CreateUserDialog directory={directory.data} me={me.data} onClose={() => setCreating(false)} onCreated={list.reload} />
+      ) : null}
+      {importing && me.data ? (
+        <ImportUsersDialog directory={directory.data} onClose={() => setImporting(false)} onImported={list.reload} />
       ) : null}
       {openId && me.data ? (
         <EditUserDialog id={openId} directory={directory.data} me={me.data} onClose={closeDialog} onChanged={list.reload} />
