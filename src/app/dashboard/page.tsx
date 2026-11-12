@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { platformRoleOf } from "@/lib/auth/oauth";
 import { isAdminRole } from "@/lib/admin/scope";
+import { appAllowsRole, platformRoleOf } from "@/lib/auth/oauth";
+import { createClient } from "@/lib/supabase/server";
+import { getPlacement } from "@/lib/placement";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   AppWindow,
   DoorOpen,
@@ -33,6 +34,7 @@ type PortalApp = {
   description: string | null;
   icon: string | null;
   allowed_roles: string[];
+  allowed_platform_roles: string[] | null;
   status: AppStatus;
   is_active: boolean;
 };
@@ -92,16 +94,23 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const isAdmin = isAdminRole(platformRoleOf(profile.role, profile.platform_role));
+  const platformRole = platformRoleOf(profile.role, profile.platform_role);
+  const isAdmin = isAdminRole(platformRole);
 
   const { data: apps } = (await admin
     .from("apps")
-    .select("slug, name, url, description, icon, allowed_roles, status, is_active")
+    .select("slug, name, url, description, icon, allowed_roles, allowed_platform_roles, status, is_active")
     .eq("is_active", true)
     .order("name", { ascending: true })) as { data: PortalApp[] | null };
 
+  const placement = await getPlacement(user.id);
+  const where = [placement.institute, placement.department ?? profile.department]
+    .filter(Boolean)
+    .join(" · ");
+
+  // Live apps first, then by name.
   const visibleApps = (apps ?? [])
-    .filter((app) => app.allowed_roles.includes(profile.role))
+    .filter((app) => appAllowsRole(app, profile.role, platformRole))
     .sort((a, b) => {
       if (a.status === "live" && b.status !== "live") return -1;
       if (a.status !== "live" && b.status === "live") return 1;
@@ -121,7 +130,7 @@ export default async function DashboardPage() {
                 {profile.role}
               </span>
               <span className="rounded-md bg-slate-100 px-2 py-1">
-                {profile.department ?? "Department not set"}
+                {where || "Department not set"}
               </span>
             </div>
           </div>
