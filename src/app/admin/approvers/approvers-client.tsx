@@ -230,8 +230,10 @@ function EndDialog({
   onClose: () => void;
   onEnded: () => void;
 }) {
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const [validTo, setValidTo] = useState(yesterday);
+  // Lazy initializer: read the clock once on mount, not on every render.
+  const [validTo, setValidTo] = useState(() =>
+    new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
