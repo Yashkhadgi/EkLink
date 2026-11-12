@@ -88,8 +88,13 @@ Typical claims:
 - `batch`
 - `section`
 - `ver`
+- `platform_role` (`super_admin`, `org_admin`, `institute_admin`, `department_admin`, `faculty`, `staff` or `student`)
+- `semester`
+- `org_code`, `institute_code`, `department_code`
 
-Create the app-local user on first sign-in if needed.
+`semester` and the `*_code` claims are `null` until a user is placed in the directory. The older claims (`role`, `department`, ...) keep their old values.
+
+Create the app-local user on first sign-in if needed. To keep people, placement and approver jobs up to date between sign-ins, follow the [change sync guide](sync-guide.md).
 
 ## Sessions And Refresh
 
@@ -109,7 +114,7 @@ EkLink re-checks the user is active, does not need a forced password change, sti
 
 ## Roles
 
-Use the EkLink `role` claim for broad app access only. App-specific permissions must still be enforced by the app server.
+Use the EkLink `role` or `platform_role` claim for broad app access only. When an app is registered with `--platform-roles`, EkLink checks `platform_role` instead of the older `allowed_roles` list. App-specific permissions must still be enforced by the app server.
 
 ## Logout
 
